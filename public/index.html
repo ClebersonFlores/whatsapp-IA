@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WhatsApp Risk Checker</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #e8e8e8;
+      min-height: 100vh;
+    }
+
+    header {
+      background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 2px 20px rgba(37,211,102,0.3);
+    }
+
+    header .logo {
+      width: 44px;
+      height: 44px;
+      background: white;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+    }
+
+    header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: white;
+    }
+
+    header p {
+      font-size: 13px;
+      color: rgba(255,255,255,0.8);
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 32px 20px;
+    }
+
+    .card {
+      background: #141414;
+      border: 1px solid #222;
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .card h2 {
+      font-size: 16px;
+      font-weight: 600;
+      color: #aaa;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 16px;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 140px;
+      background: #0f0f0f;
+      border: 1.5px solid #2a2a2a;
+      border-radius: 10px;
+      color: #e8e8e8;
+      font-size: 15px;
+      line-height: 1.6;
+      padding: 14px;
+      resize: vertical;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #25D366;
+    }
+
+    .char-count {
+      text-align: right;
+      font-size: 12px;
+      color: #555;
+      margin-top: 6px;
+    }
+
+    .char-count.warn { color: #f59e0b; }
+    .char-count.over { color: #ef4444; }
+
+    .btn {
+      width: 100%;
+      padding: 15px;
+      background: linear-gradient(135deg, #25D366, #128C7E);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 14px;
+      transition: opacity 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn:hover:not(:disabled) { opacity: 0.9; transform: translateY(-1px); }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .result-section { display: none; }
+
+    .risk-banner {
+      border-radius: 12px;
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    .risk-banner.alto    { background: #1a0505; border: 1.5px solid #7f1d1d; }
+    .risk-banner.medio   { background: #1a1000; border: 1.5px solid #78350f; }
+    .risk-banner.baixo   { background: #0f1a0a; border: 1.5px solid #14532d; }
+    .risk-banner.seguro  { background: #051a10; border: 1.5px solid #065f46; }
+    .risk-banner.borderline { background: #12100a; border: 1.5px solid #854d0e; }
+
+    .risk-icon { font-size: 36px; flex-shrink: 0; }
+
+    .risk-info h3 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+    .risk-info .sub { font-size: 13px; color: #888; }
+
+    .risk-score {
+      margin-left: auto;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .risk-score .score-num {
+      font-size: 32px;
+      font-weight: 800;
+      line-height: 1;
+    }
+
+    .risk-score .score-label { font-size: 11px; color: #666; margin-top: 2px; }
+
+    .alto    .risk-info h3, .alto    .score-num { color: #f87171; }
+    .medio   .risk-info h3, .medio   .score-num { color: #fbbf24; }
+    .baixo   .risk-info h3, .baixo   .score-num { color: #86efac; }
+    .seguro  .risk-info h3, .seguro  .score-num { color: #34d399; }
+    .borderline .risk-info h3, .borderline .score-num { color: #fcd34d; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+
+    @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+
+    .info-box {
+      background: #141414;
+      border: 1px solid #222;
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    .info-box h4 {
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 10px;
+    }
+
+    .info-box p { font-size: 14px; line-height: 1.6; color: #ccc; }
+
+    .tags { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+
+    .tag {
+      background: #2a1515;
+      border: 1px solid #5b1a1a;
+      color: #f87171;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .tag.change {
+      background: #0a1f0a;
+      border-color: #1a4d1a;
+      color: #86efac;
+    }
+
+    .rewrite-box {
+      background: #051a10;
+      border: 1.5px solid #065f46;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .rewrite-box h3 {
+      font-size: 14px;
+      font-weight: 700;
+      color: #34d399;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .rewrite-text {
+      background: #0a0a0a;
+      border: 1px solid #1a3d2a;
+      border-radius: 8px;
+      padding: 14px;
+      font-size: 15px;
+      line-height: 1.7;
+      color: #e8e8e8;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .copy-btn {
+      margin-top: 10px;
+      background: none;
+      border: 1.5px solid #25D366;
+      color: #25D366;
+      padding: 8px 18px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, color 0.2s;
+    }
+
+    .copy-btn:hover { background: #25D366; color: #000; }
+
+    .error-box {
+      background: #1a0505;
+      border: 1.5px solid #7f1d1d;
+      border-radius: 12px;
+      padding: 16px 20px;
+      color: #f87171;
+      font-size: 14px;
+      display: none;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 24px;
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .legend-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-red    { background: #ef4444; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-lime   { background: #84cc16; }
+    .dot-green  { background: #22c55e; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">📱</div>
+  <div>
+    <h1>WhatsApp Risk Checker</h1>
+    <p>Detecta e reescreve mensagens que a Meta classifica como Marketing</p>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot dot-red"></div> Alto Risco — bloqueio provável</div>
+    <div class="legend-item"><div class="legend-dot dot-yellow"></div> Médio Risco — monitorar</div>
+    <div class="legend-item"><div class="legend-dot dot-lime"></div> Baixo Risco — ajustes menores</div>
+    <div class="legend-item"><div class="legend-dot dot-green"></div> Seguro — sem risco identificado</div>
+  </div>
+
+  <div class="card">
+    <h2>📝 Digite o Template de Mensagem</h2>
+    <textarea
+      id="messageInput"
+      placeholder="Cole aqui o template de mensagem do WhatsApp que deseja analisar...
+
+Exemplo: 'Olá {{nome}}! Temos uma oferta EXCLUSIVA para você! 50% de desconto nos próximos 2 dias. Não perca! Clique aqui e aproveite 👇'"
+    ></textarea>
+    <div class="char-count" id="charCount">0 / 1024 caracteres</div>
+    <button class="btn" id="analyzeBtn" onclick="analyze()">
+      <div class="spinner" id="spinner"></div>
+      <span id="btnText">🔍 Analisar Mensagem</span>
+    </button>
+  </div>
+
+  <div class="error-box" id="errorBox"></div>
+
+  <div class="result-section" id="resultSection">
+
+    <div class="risk-banner" id="riskBanner">
+      <div class="risk-icon" id="riskIcon"></div>
+      <div class="risk-info">
+        <h3 id="riskTitle"></h3>
+        <div class="sub" id="riskSub"></div>
+      </div>
+      <div class="risk-score">
+        <div class="score-num" id="scoreNum"></div>
+        <div class="score-label">Pontuação de Risco</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="info-box">
+        <h4>🎯 Motivo da Classificação</h4>
+        <p id="explicacao"></p>
+      </div>
+      <div class="info-box">
+        <h4>⚠️ Por que a Meta Bloqueia</h4>
+        <p id="porQueBloqueia"></p>
+      </div>
+    </div>
+
+    <div class="info-box" style="margin-bottom:16px" id="elementosBox">
+      <h4>🚨 Elementos Problemáticos Detectados</h4>
+      <div class="tags" id="elementosTags"></div>
+    </div>
+
+    <div class="rewrite-box">
+      <h3>✅ Mensagem Reescrita — Versão Segura</h3>
+      <div class="rewrite-text" id="rewriteText"></div>
+      <button class="copy-btn" onclick="copyRewrite()">📋 Copiar mensagem segura</button>
+    </div>
+
+    <div class="info-box" id="mudancasBox">
+      <h4>🔄 O que foi Alterado na Reescrita</h4>
+      <div class="tags" id="mudancasTags"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const input = document.getElementById('messageInput');
+  const charCount = document.getElementById('charCount');
+
+  input.addEventListener('input', () => {
+    const len = input.value.length;
+    charCount.textContent = `${len} / 1024 caracteres`;
+    charCount.className = 'char-count' + (len > 1024 ? ' over' : len > 800 ? ' warn' : '');
+  });
+
+  async function analyze() {
+    const message = input.value.trim();
+    if (!message) {
+      showError('Por favor, digite uma mensagem para analisar.');
+      return;
+    }
+
+    const btn = document.getElementById('analyzeBtn');
+    const spinner = document.getElementById('spinner');
+    const btnText = document.getElementById('btnText');
+    const errorBox = document.getElementById('errorBox');
+    const resultSection = document.getElementById('resultSection');
+
+    btn.disabled = true;
+    spinner.style.display = 'block';
+    btnText.textContent = 'Analisando...';
+    errorBox.style.display = 'none';
+    resultSection.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        showError(data.error || 'Erro desconhecido.');
+        return;
+      }
+
+      renderResult(data);
+    } catch (e) {
+      showError('Falha na conexão com o servidor. Verifique se o servidor está rodando.');
+    } finally {
+      btn.disabled = false;
+      spinner.style.display = 'none';
+      btnText.textContent = '🔍 Analisar Mensagem';
+    }
+  }
+
+  function renderResult(data) {
+    const risco = (data.risco || '').toLowerCase();
+    const classificacao = data.classificacao || '';
+
+    const config = {
+      'alto':       { icon: '🚨', cls: 'alto',       title: `ALTO RISCO — Classificado como ${classificacao}` },
+      'médio':      { icon: '⚠️',  cls: 'medio',      title: `MÉDIO RISCO — Classificado como ${classificacao}` },
+      'baixo':      { icon: '🟡', cls: 'baixo',      title: `BAIXO RISCO — Classificado como ${classificacao}` },
+      'seguro':     { icon: '✅', cls: 'seguro',     title: `SEGURO — Classificado como ${classificacao}` },
+      'borderline': { icon: '⚠️',  cls: 'borderline', title: `BORDERLINE — Classificado como ${classificacao}` },
+    };
+
+    const cfg = config[risco] || config['medio'];
+
+    const banner = document.getElementById('riskBanner');
+    banner.className = 'risk-banner ' + cfg.cls;
+    document.getElementById('riskIcon').textContent = cfg.icon;
+    document.getElementById('riskTitle').textContent = cfg.title;
+    document.getElementById('riskSub').textContent = getSubtitle(risco);
+    document.getElementById('scoreNum').textContent = (data.pontuacao_risco ?? '?') + '%';
+
+    document.getElementById('explicacao').textContent = data.explicacao || '—';
+    document.getElementById('porQueBloqueia').textContent = data.por_que_bloqueia || '—';
+
+    const elementosTags = document.getElementById('elementosTags');
+    const elementos = data.elementos_problematicos || [];
+    if (elementos.length) {
+      elementosTags.innerHTML = elementos.map(e => `<span class="tag">${e}</span>`).join('');
+      document.getElementById('elementosBox').style.display = 'block';
+    } else {
+      elementosTags.innerHTML = '<span style="color:#555;font-size:14px">Nenhum elemento problemático detectado.</span>';
+    }
+
+    document.getElementById('rewriteText').textContent = data.mensagem_reescrita || '—';
+
+    const mudancasTags = document.getElementById('mudancasTags');
+    const mudancas = data.mudancas_realizadas || [];
+    if (mudancas.length) {
+      mudancasTags.innerHTML = mudancas.map(m => `<span class="tag change">${m}</span>`).join('');
+    } else {
+      mudancasTags.innerHTML = '<span style="color:#555;font-size:14px">Nenhuma mudança necessária.</span>';
+    }
+
+    document.getElementById('resultSection').style.display = 'block';
+    document.getElementById('resultSection').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function getSubtitle(risco) {
+    const map = {
+      'alto':       'Probabilidade alta de bloqueio pelo sistema da Meta. Não enviar.',
+      'médio':      'A Meta pode reclassificar esta mensagem. Revise antes de usar.',
+      'baixo':      'Pequenos ajustes aumentariam a segurança operacional.',
+      'seguro':     'Mensagem dentro das diretrizes da Meta para templates Utility.',
+      'borderline': 'Conteúdo ambíguo que pode ser reclassificado automaticamente.',
+    };
+    return map[risco] || '';
+  }
+
+  function copyRewrite() {
+    const text = document.getElementById('rewriteText').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      btn.textContent = '✅ Copiado!';
+      setTimeout(() => btn.textContent = '📋 Copiar mensagem segura', 2000);
+    });
+  }
+
+  function showError(msg) {
+    const box = document.getElementById('errorBox');
+    box.textContent = '❌ ' + msg;
+    box.style.display = 'block';
+  }
+
+  input.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') analyze();
+  });
+</script>
+
+</body>
+</html>
